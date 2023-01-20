@@ -58,13 +58,15 @@ func randomTestStructs(num int) (r []*TestStruct) {
 	return
 }
 
-func Test_KvStore_General(t *testing.T) {
+func Test_KvStore_for_set_get_del(t *testing.T) {
 	var err error
 	dir := path.Join(testDir, t.Name())
+	kvconf := atur.NewKvConfig(atur.SetDir(dir), atur.SetShards(3))
+	kvconf.Dir = dir
 	_ = os.RemoveAll(dir)
 	err = os.MkdirAll(dir, os.ModePerm)
 	require.Nilf(t, err, "mkdir %s wrong %v", dir, err)
-	kvs, err := atur.NewKvStore(dir, nil)
+	kvs, err := atur.NewKvStore(kvconf)
 	require.Nilf(t, err, "new kvstore %s wrong %v", dir, err)
 	defer kvs.Close()
 	items := randomTestStructs(50)

@@ -3,6 +3,7 @@ module github.com/lukaproject/atur
 go 1.18
 
 require (
+	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.8.1
 	github.com/syndtr/goleveldb v1.0.0
 )
