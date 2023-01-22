@@ -75,10 +75,11 @@ func (db *dBImpl) GetTable(tableName string) (t Table, err error) {
 	if db.closed() {
 		return nil, Err_DBClosed
 	}
-	t, ok := InterfaceToWithBool[Table](db.Name2table.Load(tableName))
+	tInterface, ok := db.Name2table.Load(tableName)
 	if !ok {
 		return nil, Err_TableNotExist
 	}
+	t = tInterface.(Table)
 	return
 }
 
