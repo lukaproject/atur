@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/spaolacci/murmur3"
 	"github.com/syndtr/goleveldb/leveldb"
 	leveldbOpt "github.com/syndtr/goleveldb/leveldb/opt"
 )
@@ -81,6 +80,17 @@ type KvStore interface {
 	// error
 	GetTTLCtx(ctx context.Context, key []byte, value TTLSerializable) (err error)
 
+	// Check if the key exist or not
+	// input:
+	// ctx : context
+	// key : []byte
+	//
+	// return:
+	// exist bool
+	Exist(ctx context.Context, key []byte) (exist bool)
+
+	// maybe only used by leveldbKvStore
+	GetFull() map[string][]byte
 	Close() (err error)
 }
 
@@ -109,23 +119,20 @@ type levelDBKvStore struct {
 	Shards int
 }
 
-func calcIdx(key []byte, shard int) uint32 {
-	m3 := murmur3.New32()
-	m3.Write(key)
-	return m3.Sum32() % uint32(shard)
-}
-
 func (lkv *levelDBKvStore) SetCtx(ctx context.Context, key []byte, value Serializable) (err error) {
+	checkCtxTimeout(ctx)
 	idx := calcIdx(key, lkv.Shards)
 	return lkv.Dbs[idx].Put(key, value.Serialize(), nil)
 }
 
 func (lkv *levelDBKvStore) DelCtx(ctx context.Context, key []byte) (err error) {
+	checkCtxTimeout(ctx)
 	idx := calcIdx(key, lkv.Shards)
 	return lkv.Dbs[idx].Delete(key, nil)
 }
 
 func (lkv *levelDBKvStore) GetCtx(ctx context.Context, key []byte, value Serializable) (err error) {
+	checkCtxTimeout(ctx)
 	idx := calcIdx(key, lkv.Shards)
 	var v []byte
 	v, err = lkv.Dbs[idx].Get(key, nil)
@@ -143,9 +150,12 @@ func (lkv *levelDBKvStore) GetCtx(ctx context.Context, key []byte, value Seriali
 }
 
 func (lkv *levelDBKvStore) SetTTLCtx(ctx context.Context, key []byte, value TTLSerializable) (err error) {
-	panic("")
+	checkCtxTimeout(ctx)
+	return lkv.SetCtx(ctx, key, value)
 }
+
 func (lkv *levelDBKvStore) GetTTLCtx(ctx context.Context, key []byte, value TTLSerializable) (err error) {
+	checkCtxTimeout(ctx)
 	idx := calcIdx(key, lkv.Shards)
 	var v []byte
 	v, err = lkv.Dbs[idx].Get(key, nil)
@@ -166,6 +176,16 @@ func (lkv *levelDBKvStore) GetTTLCtx(ctx context.Context, key []byte, value TTLS
 	return
 }
 
+func (lkv *levelDBKvStore) Exist(ctx context.Context, key []byte) (exist bool) {
+	checkCtxTimeout(ctx)
+	idx := calcIdx(key, lkv.Shards)
+	exist, err := lkv.Dbs[idx].Has(key, nil)
+	if err != nil {
+		return false
+	}
+	return
+}
+
 func (lkv *levelDBKvStore) Close() (err error) {
 	for _, v := range lkv.Dbs {
 		err = v.Close()
@@ -174,4 +194,15 @@ func (lkv *levelDBKvStore) Close() (err error) {
 		}
 	}
 	return
+}
+
+func (lkv *levelDBKvStore) GetFull() map[string][]byte {
+	ret := make(map[string][]byte)
+	for _, db := range lkv.Dbs {
+		iter := db.NewIterator(nil, nil)
+		for iter.Next() {
+			ret[string(iter.Key())] = iter.Value()
+		}
+	}
+	return ret
 }

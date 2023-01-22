@@ -18,27 +18,21 @@ func DefaultKvConfig() *KvStoreConfig {
 	}
 }
 
-type Option func(*KvStoreConfig)
+type KvOption func(*KvStoreConfig)
 
-func SetDir(dir string) Option {
+func SetDir(dir string) KvOption {
 	return func(ksc *KvStoreConfig) {
 		ksc.Dir = dir
 	}
 }
 
-func SetShards(shards int) Option {
+func SetShards(shards int) KvOption {
 	return func(ksc *KvStoreConfig) {
 		ksc.Shards = shards
 	}
 }
 
-func SetLeveldbOptions(ldbOpt *leveldbOpt.Options) Option {
-	return func(ksc *KvStoreConfig) {
-		ksc.LeveldbOptions = ldbOpt
-	}
-}
-
-func NewKvConfig(opts ...Option) (ksc *KvStoreConfig) {
+func NewKvConfig(opts ...KvOption) (ksc *KvStoreConfig) {
 	ksc = &KvStoreConfig{}
 	for _, opt := range opts {
 		opt(ksc)
