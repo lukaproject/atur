@@ -3,6 +3,7 @@ package atur
 import (
 	"context"
 	"errors"
+	"log"
 	"path"
 	"sync"
 	"sync/atomic"
@@ -89,6 +90,10 @@ func (db *dBImpl) Close() {
 	}
 	db.isClosed.Store(true)
 	db.config.Close()
+	db.Name2table.Range(func(_, value any) bool {
+		value.(Table).Close()
+		return true
+	})
 }
 
 func (db *dBImpl) closed() bool {
@@ -102,10 +107,12 @@ func (db *dBImpl) loadConfig() (err error) {
 		return
 	}
 	ret := db.config.GetFull()
-	for _, v := range ret {
+	for k, v := range ret {
 		tableObj := &tableImpl{}
-		tableObj.Unserialize(v)
+		tableObj.Unserialize([]byte(v))
+		log.Println("key =", k, v, " name =", tableObj.Name)
 		table, err := NewTable(path.Join(db.Dir, TableNamePrefix+tableObj.Name), tableObj.Name, tableObj.Shards)
+		log.Println(err, TableNamePrefix+tableObj.Name, path.Join(db.Dir, TableNamePrefix+tableObj.Name))
 		if err != nil {
 			return err
 		}

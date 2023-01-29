@@ -2,6 +2,7 @@ package atur
 
 import (
 	"context"
+	"os"
 	"sync"
 )
 
@@ -23,15 +24,28 @@ type DB interface {
 	Close()
 }
 
-func Open(dir string) DB {
+func Open(dir string) (DB, error) {
+	var err error
+	err = os.MkdirAll(dir, os.ModePerm)
+	if err != nil && err != os.ErrExist {
+		return nil, err
+	}
 	ret := &dBImpl{
 		Dir:        dir,
 		Name2table: &sync.Map{},
 	}
 	ret.isClosed.Store(false)
-	err := ret.loadConfig()
+	err = ret.loadConfig()
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return ret
+	return ret, nil
+}
+
+func MustOpen(dir string) DB {
+	db, err := Open(dir)
+	if err != nil {
+		panic(err)
+	}
+	return db
 }

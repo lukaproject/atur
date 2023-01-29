@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"path"
+	"strconv"
 	"sync"
 
 	"testing"
@@ -95,10 +96,31 @@ func TestAtur(t *testing.T) {
 	tableName := "TestObj"
 	testDir := "testDir"
 	os.RemoveAll(testDir)
-	aturDb := atur.Open(path.Join(testDir, t.Name()))
+	aturDb := atur.MustOpen(path.Join(testDir, t.Name()))
 	err := aturDb.Create(tableName, 5)
 	require.Nil(t, err, "create table error")
 	table, err := aturDb.GetTable(tableName)
 	require.Nil(t, err, "get table %s error", tableName)
 	require.Nil(t, runInserts(t, table, 10), "run inserts error")
+}
+
+func TestAtur_LoadConfig(t *testing.T) {
+	tableNamePrefix := "TestObj"
+	testDir := "testDir"
+	defer os.RemoveAll(path.Join(testDir, t.Name()))
+	aturDb := atur.MustOpen(path.Join(testDir, t.Name()))
+	var err error
+	for i := 0; i < 5; i++ {
+		err = aturDb.Create(tableNamePrefix+strconv.Itoa(i), 5)
+		require.Nilf(t, err, "create table %s failed because of %v", tableNamePrefix+strconv.Itoa(i), err)
+	}
+	aturDb.Close()
+
+	aturDb2 := atur.MustOpen(path.Join(testDir, t.Name()))
+	require.NotNil(t, aturDb2)
+	for i := 0; i < 5; i++ {
+		table, err := aturDb2.GetTable(tableNamePrefix + strconv.Itoa(i))
+		require.Nilf(t, err, "get table %s failed because of %v", tableNamePrefix+strconv.Itoa(i), err)
+		require.NotNil(t, table)
+	}
 }

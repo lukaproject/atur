@@ -17,7 +17,7 @@ var (
 )
 
 func Init() (err error) {
-	Db = atur.Open(Dir)
+	Db = atur.MustOpen(Dir)
 loop:
 	UserInfoTable, err = Db.GetTable(TableName)
 	if UserInfoTable == nil {
