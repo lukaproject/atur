@@ -90,7 +90,7 @@ type KvStore interface {
 	Exist(ctx context.Context, key []byte) (exist bool)
 
 	// maybe only used by leveldbKvStore
-	GetFull() map[string][]byte
+	GetFull() map[string]string
 	Close() (err error)
 }
 
@@ -196,12 +196,12 @@ func (lkv *levelDBKvStore) Close() (err error) {
 	return
 }
 
-func (lkv *levelDBKvStore) GetFull() map[string][]byte {
-	ret := make(map[string][]byte)
+func (lkv *levelDBKvStore) GetFull() (ret map[string]string) {
+	ret = make(map[string]string)
 	for _, db := range lkv.Dbs {
 		iter := db.NewIterator(nil, nil)
 		for iter.Next() {
-			ret[string(iter.Key())] = iter.Value()
+			ret[string(iter.Key())] = string(iter.Value())
 		}
 	}
 	return ret

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/lukaproject/atur"
+	"github.com/lukaproject/atur/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -58,17 +59,8 @@ func randomTestStructs(num int) (r []*TestStruct) {
 	return
 }
 
-func Test_KvStore_for_set_get_del(t *testing.T) {
+func set_get_del_test_cases(kvs atur.KvStore, t *testing.T) {
 	var err error
-	dir := path.Join(testDir, t.Name())
-	kvconf := atur.NewKvConfig(atur.SetDir(dir), atur.SetShards(3))
-	kvconf.Dir = dir
-	_ = os.RemoveAll(dir)
-	err = os.MkdirAll(dir, os.ModePerm)
-	require.Nilf(t, err, "mkdir %s wrong %v", dir, err)
-	kvs, err := atur.NewKvStore(kvconf)
-	require.Nilf(t, err, "new kvstore %s wrong %v", dir, err)
-	defer kvs.Close()
 	items := randomTestStructs(50)
 	for _, v := range items {
 		kvs.SetCtx(context.Background(), []byte(v.Key), v)
@@ -112,4 +104,26 @@ func Test_KvStore_for_set_get_del(t *testing.T) {
 				string(v.Key), string(v.Serialize()), string(fromdb.Serialize()))
 		}
 	}
+}
+
+func Test_KvStore_for_set_get_del(t *testing.T) {
+	var err error
+	dir := path.Join(testDir, t.Name())
+	kvconf := atur.NewKvConfig(atur.SetDir(dir), atur.SetShards(3))
+	kvconf.Dir = dir
+	err = os.MkdirAll(dir, os.ModePerm)
+	require.Nilf(t, err, "mkdir %s wrong %v", dir, err)
+	kvs, err := atur.NewKvStore(kvconf)
+	require.Nilf(t, err, "new kvstore %s wrong %v", dir, err)
+	defer func() {
+		kvs.Close()
+		_ = os.RemoveAll(dir)
+	}()
+	set_get_del_test_cases(kvs, t)
+}
+
+func Test_fakeKvStore_for_set_get_del(t *testing.T) {
+	kvs := testutil.NewFakeKvStore()
+	defer kvs.Close()
+	set_get_del_test_cases(kvs, t)
 }

@@ -28,6 +28,7 @@ func TestDiskQue_reInit(t *testing.T) {
 	var err error
 	dqPath := path.Join("testDir", t.Name())
 	os.MkdirAll(dqPath, os.ModePerm)
+	defer os.RemoveAll(dqPath)
 	dq := que.DefaultDiskQue(t.Name(), dqPath)
 	dq.New()
 	tdq := &TestDiskQue{
@@ -45,5 +46,5 @@ func TestDiskQue_reInit(t *testing.T) {
 	tdq2 := &TestDiskQue{}
 	err = dq2.Pop(tdq2)
 	require.Nil(t, err, "pop is error")
-	t.Log(string(tdq2.Serialize()))
+	require.Equal(t, tdq.Serialize(), tdq2.Serialize())
 }
